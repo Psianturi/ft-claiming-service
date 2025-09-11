@@ -1,0 +1,33 @@
+{
+  "name": "nearn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "./node_modules/.bin/ts-node src/index.ts",
+    "benchmark": "./node_modules/.bin/ts-node src/benchmark.ts",
+    "sandbox": "near-sandbox"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/body-parser": "^1.19.6",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
+    "@types/node-fetch": "^2.6.13",
+    "near-sandbox": "^0.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@near-js/signers": "^2.3.1",
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0",
+    "near-api-js": "^4.0.4",
+    "node-fetch": "^2.7.0"
+  }
+}

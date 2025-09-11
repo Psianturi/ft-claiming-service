@@ -4,7 +4,7 @@ Layanan ini menyediakan API sederhana untuk mentransfer Token Fungible (FT) di b
 
 ## Alur Proyek
 
-Layanan ini bekerja sebagai berikut:
+Layanan ini bekerja sebagai berikut->
 
 1.  **Inisialisasi**: Saat server dimulai, ia menginisialisasi koneksi ke blockchain NEAR menggunakan kredensial dan konfigurasi jaringan yang ditentukan dalam `src/config.ts`. Ini terhubung ke akun master yang akan digunakan untuk mengirim token.
 2.  **Endpoint API**: Layanan ini mengekspos satu endpoint POST di `/send-ft`.

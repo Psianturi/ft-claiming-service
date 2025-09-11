@@ -6,7 +6,7 @@ const testnetConfig = {
   walletUrl: "https://wallet.testnet.near.org",
   helperUrl: "https://helper.testnet.near.org",
   explorerUrl: "https://explorer.testnet.near.org",
-  masterAccount: "your-account.testnet", // Replace with your testnet account
+  masterAccount: "near-badge.testnet", // Replace with your testnet account
   ftContract: "ft.examples.testnet", // Replace with your FT contract
   numberOfKeys: 10, // Number of access keys to use
 };

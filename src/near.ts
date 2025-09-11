@@ -1,11 +1,14 @@
 import { connect, Near, Account, keyStores } from 'near-api-js';
 import { config } from './config';
+import * as os from 'os';
+import * as path from 'path';
 
 let account: Account;
 
 export const initNear = async () => {
-    // Setup a keystore for the account
-    const keyStore = new keyStores.InMemoryKeyStore();
+    const credentialsPath = path.join(os.homedir(), '.near-credentials');
+    // Setup a keystore that reads from the filesystem
+    const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath);
     
     // Konfigurasi untuk koneksi NEAR
     const nearConfig = {

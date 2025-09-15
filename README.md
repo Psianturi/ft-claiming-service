@@ -1,6 +1,10 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # NEAR Fungible Token API Service
 
 This service provides a simple Express.js API to transfer NEAR Fungible Tokens (FT). It features dynamic configuration to switch between `testnet` and `sandbox` environments and includes robust error handling.
+
+💡 **Note**: For the complete setup, deployment, and end-to-end testing scripts, please see the companion repository: [near-ft-helper](https://github.com/Psianturi/near-ft-helper).
 
 ## Features
 
@@ -19,8 +23,8 @@ This service provides a simple Express.js API to transfer NEAR Fungible Tokens (
 ## Prerequisites
 
 -   Node.js 18+
--   A NEAR account with credentials stored locally in `~/.near-credentials/`.
--   An already-deployed FT smart contract.
+-   A NEAR account with credentials stored locally in `~/.near-credentials/` (for testnet).
+-   An already-deployed FT smart contract (for testnet).
 
 ## Installation
 
@@ -34,7 +38,7 @@ npm install
 
 ## Configuration
 
-The service uses a dynamic configuration loader.
+The service uses a dynamic configuration loader based on the `NEAR_ENV` environment variable.
 
 ### 1. Testnet Configuration (`src/config.ts`)
 
@@ -54,7 +58,7 @@ export const config = {
 
 ### 2. Sandbox Configuration (`src/config.sandbox.ts`)
 
-These values should correspond to the accounts created by the `near-ft-workspaces/deploy.js` script.
+These values correspond to the accounts created by the `near-ft-workspaces/deploy.js` script and should not need to be changed.
 
 ```typescript
 // src/config.sandbox.ts
@@ -67,75 +71,64 @@ export const config = {
 };
 ```
 
-## How to Run
+## 🚀 How to Run for Sandbox Testing
 
-You can start the server in either `testnet` or `sandbox` mode.
+Testing is performed in the `token-claim-service` folder, but it requires the `near-ft-workspaces` helper to be running simultaneously to provide a local blockchain.
 
-### Running on Testnet
+### Step 1: Run the Sandbox Helper
 
-This is the default mode.
-
-```bash
-npm start
-# or
-npm run start:testnet
-```
-
-### Running in Sandbox Mode
-
-First, ensure your local sandbox and contracts are deployed. See the "Sandbox Testing Environment" section below for instructions.
-
-After the sandbox is running, start the server with the `NEAR_ENV` variable set to `sandbox`.
+In a **separate terminal**, navigate to the `near-ft-workspaces` directory and start the sandbox environment.
 
 ```bash
-npm run start:sandbox
+cd /mnt/d/POSMPROJECT/BLOCKCHAIN/NEAR/NEARN-FT/near-ft-workspaces
+node deploy.js
 ```
 
-The server will start on `http://localhost:3000`.
+→ Leave this terminal **open and running**. It is now serving a local NEAR blockchain.
 
-## API Usage
+### Step 2: Run the API Server
 
-Send a `POST` request to the `/send-ft` endpoint.
+In a **new terminal**, navigate to this `token-claim-service` directory and start the server in sandbox mode.
 
-**Endpoint**: `POST /send-ft`
-
-**Body**:
-```json
-{
-  "receiverId": "recipient.test.near",
-  "amount": "500000000000000000000",
-  "memo": "API transfer"
-}
+```bash
+cd /mnt/d/POSMPROJECT/BLOCKCHAIN/NEAR/NEARN-FT/token-claim-service
+NEAR_ENV=sandbox npm start
 ```
 
--   **`amount`**: The amount of tokens to send, specified in the token's smallest unit (yocto).
+→ The API server is now running on `http://localhost:3000` and is connected to your local sandbox.
 
-**Example with `curl`**:
+### Step 3: Test with `curl`
+
+You can now send requests to the API from any terminal.
+
 ```bash
 curl -X POST http://localhost:3000/send-ft \
   -H "Content-Type: application/json" \
   -d '{
     "receiverId": "user.test.near",
-    "amount": "500",
+    "amount": "500000",
     "memo": "Test from API"
   }'
 ```
 
 A successful request will return a JSON object containing the transaction result.
 
-## Sandbox Testing Environment
+## Running on Testnet (Default)
 
-For local development and testing, this service is designed to connect to a local NEAR sandbox environment. We have prepared a separate repository containing all the necessary scripts to start a sandbox and deploy the required FT contract.
+If you are not using the local sandbox, you can run the service against the public `testnet`.
 
--   **Repository**: [near-ft-sandbox](https://github.com/near-examples/near-ft-sandbox)
-
-Please follow the instructions in that repository's `README.md` to set up your local testing environment before running this service in `sandbox` mode.
+```bash
+# This is the default mode
+npm start
+# or
+npm run start:testnet
+```
 
 ## Security & Best Practices
 
--   **Authentication**: The current API is unauthenticated. For any real-world application, protect this endpoint with an API key, JWT, or other authentication mechanism to prevent unauthorized use.
+-   **Authentication**: The current API is unauthenticated. For any real-world application, protect this endpoint with an API key, JWT, or other authentication mechanism.
 -   **RPC Rate Limits**: The public `testnet` RPC has strict rate limits. For production or heavy testing, use a dedicated RPC provider. The sandbox environment does not have rate limits.
--   **Error Handling**: The service includes basic checks, but can be extended with more specific error handling and logging.
+-   **Error Handling**: The service includes basic checks but can be extended with more specific error handling and logging.
 
 ## License
 MIT

@@ -46,7 +46,7 @@ Update `src/config.ts` with your testnet account IDs. The `masterAccount` must h
 // src/config.ts
 export const config = {
   networkId: 'testnet',
-  nodeUrl: 'https://rpc.testnet.near.org',
+  nodeUrl: 'https://test.rpc.fastnear.com',
   walletUrl: 'https://wallet.testnet.near.org',
   masterAccount: '<your-master-account>.testnet',
   ftContract: '<your-ft-contract>.testnet',
@@ -71,11 +71,11 @@ export const config = {
 
 ## 🚀 How to Run for Sandbox Testing
 
-Testing is performed in the `ft-claiming-service` folder, but it requires the `near-ft-helper` helper to be running simultaneously to provide a local blockchain.
+Testing is performed in the `ft-claiming-service` folder, but it requires a local NEAR blockchain to be running. The easiest way to set this up is by using the `near-ft-helper` script, which automates the entire process.
 
-### Step 1: Run the Sandbox Helper
+### Step 1: Start the Local Blockchain (via `near-ft-helper`)
 
-In a **separate terminal**, navigate to the `near-ft-helper` directory and start the sandbox environment.
+In a **separate terminal**, navigate to the `near-ft-helper` directory and run the setup script.
 
 ```bash
 cd /near-ft-helper
@@ -125,8 +125,16 @@ npm run start:testnet
 ## Security & Best Practices
 
 -   **Authentication**: The current API is unauthenticated. For any real-world application, protect this endpoint with an API key, JWT, or other authentication mechanism.
--   **RPC Rate Limits**: The public `testnet` RPC has strict rate limits. For production or heavy testing, use a dedicated RPC provider. The sandbox environment does not have rate limits.
+-   **RPC Rate Limits**: The public testnet RPC (rpc.testnet.near.org) is deprecated and has strict rate limits. Always use https://test.rpc.fastnear.com for testing and development. The sandbox environment does not have rate limits.
 -   **Error Handling**: The service includes basic checks but can be extended with more specific error handling and logging.
+
+
+## 🚧 Upcoming Features (Final Bounty Requirements)
+
+This service is being upgraded to fully meet the bounty's high-load requirements:
+
+-   **High-Concurrency Support**: Implementing `AccountProvider` from `near-api-ts` for efficient nonce caching and multiple access keys to handle 100+ requests per second.
+-   **Performance Benchmarking**: Running and documenting load tests using Artillery on both sandbox and testnet environments.
 
 ## License
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import { initNear, getNear } from './near';
-import { config } from './config-loader';
+import { config } from './config';
 
 console.log('Config:', config);
 

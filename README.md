@@ -13,9 +13,8 @@ This service provides a simple Express.js API to transfer NEAR Fungible Tokens (
 
 -   `src/index.ts`: The main Express.js application, defines the `/send-ft` API endpoint.
 -   `src/near.ts`: Handles NEAR connection initialization and account loading.
--   `src/config-loader.ts`: Dynamically loads the correct configuration file based on `NEAR_ENV`.
--   `src/config.ts`: Configuration for `testnet`.
--   `src/config.sandbox.ts`: Configuration for `sandbox` (local testing).
+-   `src/config.ts`: Handles dynamic configuration for both `testnet` and `sandbox`.
+-   `src/config.sandbox.ts`: Provides baseline configuration for the `sandbox` environment.
 
 ## Prerequisites
 
@@ -84,7 +83,9 @@ npm run start:testnet
 
 ### Running in Sandbox Mode
 
-First, ensure your local sandbox and contracts are deployed using the `near-ft-workspaces` E2E test script. Then, run the server with the `NEAR_ENV` variable set to `sandbox`.
+First, ensure your local sandbox and contracts are deployed. See the "Sandbox Testing Environment" section below for instructions.
+
+After the sandbox is running, start the server with the `NEAR_ENV` variable set to `sandbox`.
 
 ```bash
 npm run start:sandbox
@@ -121,6 +122,14 @@ curl -X POST http://localhost:3000/send-ft \
 ```
 
 A successful request will return a JSON object containing the transaction result.
+
+## Sandbox Testing Environment
+
+For local development and testing, this service is designed to connect to a local NEAR sandbox environment. We have prepared a separate repository containing all the necessary scripts to start a sandbox and deploy the required FT contract.
+
+-   **Repository**: [near-ft-sandbox](https://github.com/near-examples/near-ft-sandbox)
+
+Please follow the instructions in that repository's `README.md` to set up your local testing environment before running this service in `sandbox` mode.
 
 ## Security & Best Practices
 

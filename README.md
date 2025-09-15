@@ -1,5 +1,3 @@
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 # NEAR Fungible Token API Service
 
 This service provides a simple Express.js API to transfer NEAR Fungible Tokens (FT). It features dynamic configuration to switch between `testnet` and `sandbox` environments and includes robust error handling.
@@ -30,7 +28,7 @@ This service provides a simple Express.js API to transfer NEAR Fungible Tokens (
 
 ```bash
 # Navigate to the service directory
-cd token-claim-service
+cd ft-claiming-service
 
 # Install dependencies
 npm install
@@ -58,7 +56,7 @@ export const config = {
 
 ### 2. Sandbox Configuration (`src/config.sandbox.ts`)
 
-These values correspond to the accounts created by the `near-ft-workspaces/deploy.js` script and should not need to be changed.
+These values correspond to the accounts created by the `near-ft-helper/deploy.js` script and should not need to be changed.
 
 ```typescript
 // src/config.sandbox.ts
@@ -73,14 +71,14 @@ export const config = {
 
 ## 🚀 How to Run for Sandbox Testing
 
-Testing is performed in the `token-claim-service` folder, but it requires the `near-ft-workspaces` helper to be running simultaneously to provide a local blockchain.
+Testing is performed in the `ft-claiming-service` folder, but it requires the `near-ft-helper` helper to be running simultaneously to provide a local blockchain.
 
 ### Step 1: Run the Sandbox Helper
 
-In a **separate terminal**, navigate to the `near-ft-workspaces` directory and start the sandbox environment.
+In a **separate terminal**, navigate to the `near-ft-helper` directory and start the sandbox environment.
 
 ```bash
-cd /mnt/d/POSMPROJECT/BLOCKCHAIN/NEAR/NEARN-FT/near-ft-workspaces
+cd /near-ft-helper
 node deploy.js
 ```
 
@@ -88,10 +86,10 @@ node deploy.js
 
 ### Step 2: Run the API Server
 
-In a **new terminal**, navigate to this `token-claim-service` directory and start the server in sandbox mode.
+In a **new terminal**, navigate to this `ft-claiming-service` directory and start the server in sandbox mode.
 
 ```bash
-cd /mnt/d/POSMPROJECT/BLOCKCHAIN/NEAR/NEARN-FT/token-claim-service
+cd /ft-claiming-service
 NEAR_ENV=sandbox npm start
 ```
 
@@ -131,4 +129,4 @@ npm run start:testnet
 -   **Error Handling**: The service includes basic checks but can be extended with more specific error handling and logging.
 
 ## License
-MIT
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

@@ -38,11 +38,11 @@ const runBenchmark = async () => {
     if (promises.length >= CONCURRENCY) {
       const results = await Promise.all(promises);
       results.forEach(success => success ? successfulRequests++ : failedRequests++);
-      promises.length = 0; // Clear the array
+      promises.length = 0; 
     }
   }
 
-  // Process remaining promises
+
   if (promises.length > 0) {
     const results = await Promise.all(promises);
     results.forEach(success => success ? successfulRequests++ : failedRequests++);

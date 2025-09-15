@@ -11,9 +11,9 @@ if (process.env.NEAR_ENV === 'sandbox') {
   config = {
     ...config,
     networkId: 'sandbox',
-    nodeUrl: 'http://localhost:3030', // ✅ Sandbox RPC
-    masterAccount: 'master.test.near', // ✅ Ganti dengan nilai dari output script
-    ftContract: 'ft.test.near',       // ✅ Ganti dengan nilai dari output script
+    nodeUrl: 'http://localhost:3030',
+    masterAccount: 'master.test.near', 
+    ftContract: 'ft.test.near',     
   };
 }
 

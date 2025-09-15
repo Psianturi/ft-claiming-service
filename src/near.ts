@@ -11,7 +11,7 @@ export const initNear = async () => {
     // Setup a keystore that reads from the filesystem
     const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath);
     
-    // Konfigurasi untuk koneksi NEAR
+
     const nearConfig = {
         keyStore,
         networkId: config.networkId,
@@ -24,7 +24,6 @@ export const initNear = async () => {
     // Connect to NEAR
     const near = await connect(nearConfig);
     
-    // Get the account object
     account = await near.account(config.masterAccount);
 
     console.log('✅ NEAR connection initialized');

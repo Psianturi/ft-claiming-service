@@ -27,7 +27,7 @@ app.post('/send-ft', async (req: Request, res: Response) => {
         // Interpret amount as the token's smallest unit (per FT standard).
         const amountStr = amount.toString();
     
-        // Pre-check sender (master) FT balance to avoid failing tx on-chain
+       
         const senderBalance: string = await account.viewFunction({
           contractId: config.ftContract,
           methodName: 'ft_balance_of',
@@ -53,7 +53,7 @@ app.post('/send-ft', async (req: Request, res: Response) => {
           account_id: receiverId,
           registration_only: true,
         },
-        attachedDeposit: BigInt('1250000000000000000000'), // 0.00125 NEAR
+        attachedDeposit: BigInt('1250000000000000000000'),
         gas: BigInt('30000000000000'),
       });
     } catch (e: any) {
@@ -68,7 +68,7 @@ app.post('/send-ft', async (req: Request, res: Response) => {
         amount: amountStr,
         memo: memo || '',
       },
-      attachedDeposit: BigInt('1'), // 1 yoctoNEAR is required for ft_transfer
+      attachedDeposit: BigInt('1'),
       gas: BigInt('30000000000000'),
     });
 
@@ -81,7 +81,7 @@ app.post('/send-ft', async (req: Request, res: Response) => {
 
 const startServer = async () => {
   try {
-    await initNear(); // Pastikan koneksi NEAR sudah siap
+    await initNear();
     app.listen(port, () => {
       console.log(`🚀 Server is running on http://localhost:${port}`);
     });

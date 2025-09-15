@@ -1,11 +1,12 @@
 import { connect, Near, Account, keyStores } from 'near-api-js';
-import { config } from './config';
+import { config } from './config-loader';
 import * as os from 'os';
 import * as path from 'path';
 
 let account: Account;
 
 export const initNear = async () => {
+    console.log('Initializing NEAR with config:', config);
     const credentialsPath = path.join(os.homedir(), '.near-credentials');
     // Setup a keystore that reads from the filesystem
     const keyStore = new keyStores.UnencryptedFileSystemKeyStore(credentialsPath);

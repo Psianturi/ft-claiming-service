@@ -1,8 +1,9 @@
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
 import { initNear, getNear } from './near';
-import { config } from './config';
-import { utils } from 'near-api-js';
+import { config } from './config-loader';
+
+console.log('Config:', config);
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,25 +24,51 @@ app.post('/send-ft', async (req: Request, res: Response) => {
 
     const { account } = getNear();
 
-    // The amount should be a string representing the number of tokens, e.g., "5" for 5 tokens.
-    // near-api-js will handle the conversion to yoctoNEAR based on the token's decimals.
-    // The original code was parsing it as NEAR, which is incorrect for FTs.
-    // Let's assume the input `amount` is in the smallest unit (yocto), or we need a reference for decimals.
-    // Based on the example, "5" should work if the contract expects that.
-    // However, for FTs, we must provide the full value in yocto. Let's stick to the bounty's example which implies a simpler logic.
-    // The most robust way is to parse it assuming it's a simple number and then format to yocto. Let's use the provided amount directly as per bounty example.
-    const amountInYocto = utils.format.parseNearAmount(amount.toString()) || '0';
+        // Interpret amount as the token's smallest unit (per FT standard).
+        const amountStr = amount.toString();
+    
+        // Pre-check sender (master) FT balance to avoid failing tx on-chain
+        const senderBalance: string = await account.viewFunction({
+          contractId: config.ftContract,
+          methodName: 'ft_balance_of',
+          args: { account_id: config.masterAccount },
+        });
+        if (BigInt(senderBalance) < BigInt(amountStr)) {
+          return res.status(400).send({
+            error: 'Insufficient FT balance',
+            accountId: config.masterAccount,
+            have: senderBalance,
+            need: amountStr,
+          });
+        }
+    
+        console.log('Using contract:', config.ftContract);
 
+    // Ensure receiver is registered for storage. Safe to call repeatedly (refunds if already registered).
+    try {
+      await account.functionCall({
+        contractId: config.ftContract,
+        methodName: 'storage_deposit',
+        args: {
+          account_id: receiverId,
+          registration_only: true,
+        },
+        attachedDeposit: BigInt('1250000000000000000000'), // 0.00125 NEAR
+        gas: BigInt('30000000000000'),
+      });
+    } catch (e: any) {
+      console.warn('storage_deposit failed or not needed:', e?.message || e);
+    }
 
     const result = await account.functionCall({
       contractId: config.ftContract,
       methodName: 'ft_transfer',
       args: {
         receiver_id: receiverId,
-        amount: amountInYocto, // Sending amount in yoctoNEAR
+        amount: amountStr,
         memo: memo || '',
       },
-      attachedDeposit: BigInt("1"), // 1 yoctoNEAR is required for ft_transfer
+      attachedDeposit: BigInt('1'), // 1 yoctoNEAR is required for ft_transfer
       gas: BigInt('30000000000000'),
     });
 

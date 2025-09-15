@@ -1,98 +1,132 @@
-# Layanan Klaim Token Fungible NEAR
+# NEAR Fungible Token API Service
 
-Layanan ini menyediakan API sederhana untuk mentransfer Token Fungible (FT) di blockchain NEAR. Dibangun dengan Express.js dan menggunakan pustaka `near-api-js` untuk berinteraksi dengan smart contract NEAR.
+This service provides a simple Express.js API to transfer NEAR Fungible Tokens (FT). It features dynamic configuration to switch between `testnet` and `sandbox` environments and includes robust error handling.
 
-## Alur Proyek
+## Features
 
-Layanan ini bekerja sebagai berikut->
+-   **POST `/send-ft` Endpoint**: Transfers FT to a specified receiver.
+-   **Dynamic Configuration**: Switches between `testnet` and `sandbox` using the `NEAR_ENV` environment variable.
+-   **Sender Balance Check**: Verifies the `masterAccount`'s FT balance before attempting a transfer to prevent unnecessary failed transactions.
+-   **Automatic Storage Registration**: Automatically calls `storage_deposit` for the receiver to ensure they are registered to receive the token.
 
-1.  **Inisialisasi**: Saat server dimulai, ia menginisialisasi koneksi ke blockchain NEAR menggunakan kredensial dan konfigurasi jaringan yang ditentukan dalam `src/config.ts`. Ini terhubung ke akun master yang akan digunakan untuk mengirim token.
-2.  **Endpoint API**: Layanan ini mengekspos satu endpoint POST di `/send-ft`.
-3.  **Penanganan Permintaan**: Ketika permintaan POST diterima di `/send-ft`, layanan mengharapkan body JSON dengan `receiverId` (akun NEAR penerima) dan `amount` (jumlah token yang akan dikirim).
-4.  **Interaksi Smart Contract**: Layanan kemudian memanggil metode `ft_transfer` pada smart contract Token Fungible yang ditentukan (`ftContract` dalam konfigurasi), meneruskan `receiverId` dan `amount` dari permintaan.
-5.  **Respons**: Layanan merespons dengan pesan konfirmasi dan hasil transaksi dari blockchain NEAR.
+## Project Structure
 
-## Fungsi yang Digunakan
+-   `src/index.ts`: The main Express.js application, defines the `/send-ft` API endpoint.
+-   `src/near.ts`: Handles NEAR connection initialization and account loading.
+-   `src/config-loader.ts`: Dynamically loads the correct configuration file based on `NEAR_ENV`.
+-   `src/config.ts`: Configuration for `testnet`.
+-   `src/config.sandbox.ts`: Configuration for `sandbox` (local testing).
 
-### `src/near.ts`
+## Prerequisites
 
--   `initNear()`: Fungsi asinkron ini menginisialisasi koneksi ke blockchain NEAR. Ini mengatur `keyStore`, mengonfigurasi pengaturan koneksi NEAR (ID jaringan, URL node, dll.), dan membuat objek `Account` untuk akun master yang akan digunakan untuk mengirim token. Fungsi ini harus dipanggil sebelum interaksi blockchain lainnya dapat terjadi.
--   `getNear()`: Fungsi ini mengembalikan objek `Account` yang diinisialisasi. Ini akan melemparkan error jika `initNear()` belum dipanggil terlebih dahulu, memastikan bahwa aplikasi tidak mencoba berinteraksi dengan blockchain sebelum koneksi terjalin.
+-   Node.js 18+
+-   A NEAR account with credentials stored locally in `~/.near-credentials/`.
+-   An already-deployed FT smart contract.
 
-### `src/index.ts`
-
--   `POST /send-ft`: Ini adalah endpoint API utama. Ini menangani logika untuk mentransfer Token Fungible.
-    -   Ini mem-parsing `receiverId` dan `amount` dari body permintaan.
-    -   Ini memanggil `getNear()` untuk mendapatkan objek akun master.
-    -   Ini menggunakan metode `functionCall` dari objek akun untuk memanggil metode `ft_transfer` pada smart contract FT.
-    -   Ini memformat jumlah menggunakan `utils.format.parseNearAmount` untuk mengubahnya ke format yang dibutuhkan oleh smart contract.
-    -   Ini mengembalikan respons JSON yang menunjukkan keberhasilan atau kegagalan inisiasi transfer.
--   `startServer()`: Fungsi ini memulai server web Express. Ini pertama-tama memastikan bahwa koneksi NEAR diinisialisasi dengan memanggil `initNear()`. Jika koneksi berhasil, ia mulai mendengarkan permintaan HTTP yang masuk pada port yang dikonfigurasi.
-
-### `src/config.ts`
-
--   File ini berisi konfigurasi untuk layanan, termasuk:
-    -   `networkId`: Jaringan NEAR yang akan dihubungkan (misalnya, "testnet", "mainnet", atau "sandbox").
-    -   `nodeUrl`: URL dari node RPC NEAR.
-    -   `masterAccount`: Akun NEAR yang akan digunakan untuk mengirim token. **Anda harus mengganti placeholder dengan akun Anda sendiri.**
-    -   `ftContract`: Alamat smart contract Token Fungible. **Anda harus mengganti placeholder dengan alamat kontrak FT Anda sendiri.**
-
-## Cara Menjalankan Layanan
-
-1.  **Klon repositori:**
-    ```bash
-    git clone https://github.com/Psianturi/ft-claim-service.git
-    cd ft-claim-service
-    ```
-
-2.  **Instal dependensi:**
-    ```bash
-    npm install
-    ```
-
-3.  **Konfigurasi layanan:**
-    -   Buka `src/config.ts`.
-    -   Ganti `"your-account.testnet"` di `masterAccount` dengan ID akun testnet NEAR Anda yang sebenarnya. Akun ini harus memiliki dana dan FT yang ingin Anda transfer.
-    -   Ganti `"ft.examples.testnet"` di `ftContract` dengan ID akun dari kontrak Token Fungible yang ingin Anda ajak berinteraksi.
-
-4.  **Mulai server:**
-    ```bash
-    npm start
-    ```
-    Server akan dimulai, dan Anda akan melihat pesan yang mengonfirmasi bahwa server sedang berjalan:
-    ```
-    🚀 Server is running on http://localhost:3000
-    ```
-
-## Cara Menggunakan API
-
-Anda dapat mengirim permintaan POST ke endpoint `/send-ft` untuk mentransfer token.
-
-**Contoh menggunakan `curl`:**
+## Installation
 
 ```bash
-curl -X POST http://localhost:3000/send-ft \
--H "Content-Type: application/json" \
--d '{
-  "receiverId": "recipient-account.testnet",
-  "amount": "10"
-}'
+# Navigate to the service directory
+cd token-claim-service
+
+# Install dependencies
+npm install
 ```
 
--   Ganti `"recipient-account.testnet"` dengan ID akun NEAR penerima.
--   Ganti `"10"` dengan jumlah token yang ingin Anda kirim.
+## Configuration
 
-**Respons Berhasil:**
+The service uses a dynamic configuration loader.
 
-Jika transfer berhasil diinisiasi, Anda akan menerima respons seperti ini:
+### 1. Testnet Configuration (`src/config.ts`)
 
+Update `src/config.ts` with your testnet account IDs. The `masterAccount` must have funds and be the owner of the FTs you wish to send.
+
+```typescript
+// src/config.ts
+export const config = {
+  networkId: 'testnet',
+  nodeUrl: 'https://rpc.testnet.near.org',
+  walletUrl: 'https://wallet.testnet.near.org',
+  masterAccount: '<your-master-account>.testnet',
+  ftContract: '<your-ft-contract>.testnet',
+  // ...
+};
+```
+
+### 2. Sandbox Configuration (`src/config.sandbox.ts`)
+
+These values should correspond to the accounts created by the `near-ft-workspaces/deploy.js` script.
+
+```typescript
+// src/config.sandbox.ts
+export const config = {
+  networkId: "sandbox",
+  nodeUrl: "http://localhost:3030",
+  masterAccount: "master.test.near",
+  ftContract: "ft.test.near",
+  // ...
+};
+```
+
+## How to Run
+
+You can start the server in either `testnet` or `sandbox` mode.
+
+### Running on Testnet
+
+This is the default mode.
+
+```bash
+npm start
+# or
+npm run start:testnet
+```
+
+### Running in Sandbox Mode
+
+First, ensure your local sandbox and contracts are deployed using the `near-ft-workspaces` E2E test script. Then, run the server with the `NEAR_ENV` variable set to `sandbox`.
+
+```bash
+npm run start:sandbox
+```
+
+The server will start on `http://localhost:3000`.
+
+## API Usage
+
+Send a `POST` request to the `/send-ft` endpoint.
+
+**Endpoint**: `POST /send-ft`
+
+**Body**:
 ```json
 {
-  "message": "FT transfer initiated successfully",
-  "result": {
-    ... (detail transaksi dari NEAR)
-  }
+  "receiverId": "recipient.test.near",
+  "amount": "500000000000000000000",
+  "memo": "API transfer"
 }
 ```
 
-Ini menunjukkan bahwa transaksi telah dikirim ke jaringan NEAR untuk diproses.
+-   **`amount`**: The amount of tokens to send, specified in the token's smallest unit (yocto).
+
+**Example with `curl`**:
+```bash
+curl -X POST http://localhost:3000/send-ft \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiverId": "user.test.near",
+    "amount": "500",
+    "memo": "Test from API"
+  }'
+```
+
+A successful request will return a JSON object containing the transaction result.
+
+## Security & Best Practices
+
+-   **Authentication**: The current API is unauthenticated. For any real-world application, protect this endpoint with an API key, JWT, or other authentication mechanism to prevent unauthorized use.
+-   **RPC Rate Limits**: The public `testnet` RPC has strict rate limits. For production or heavy testing, use a dedicated RPC provider. The sandbox environment does not have rate limits.
+-   **Error Handling**: The service includes basic checks, but can be extended with more specific error handling and logging.
+
+## License
+MIT

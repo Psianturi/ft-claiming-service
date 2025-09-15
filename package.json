@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "start": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start:testnet": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start:sandbox": "NEAR_ENV=sandbox ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "npm run start:testnet",
     "benchmark": "./node_modules/.bin/ts-node src/benchmark.ts",
     "sandbox": "near-sandbox"
   },

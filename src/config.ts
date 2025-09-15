@@ -1,14 +1,20 @@
-import { config as sandboxConfig } from './config.sandbox';
-
-const testnetConfig = {
-  networkId: "testnet",
-  nodeUrl: "https://rpc.testnet.near.org",
-  walletUrl: "https://wallet.testnet.near.org",
-  helperUrl: "https://helper.testnet.near.org",
-  explorerUrl: "https://explorer.testnet.near.org",
-  masterAccount: "near-badge.testnet", // Replace with your testnet account
-  ftContract: "ft.examples.testnet", // Replace with your FT contract
-  numberOfKeys: 10, // Number of access keys to use
+let config = {
+  networkId: 'testnet',
+  nodeUrl: 'https://test.rpc.fastnear.com',
+  masterAccount: 'posm.testnet',
+  ftContract: 'posm.testnet',
+  helperUrl: 'https://helper.testnet.near.org',
+  explorerUrl: 'https://explorer.testnet.near.org',
 };
 
-export const config = process.env.NEAR_ENV === 'sandbox' ? sandboxConfig : testnetConfig;
+if (process.env.NEAR_ENV === 'sandbox') {
+  config = {
+    ...config,
+    networkId: 'sandbox',
+    nodeUrl: 'http://localhost:3030', // ✅ Sandbox RPC
+    masterAccount: 'master.test.near', // ✅ Ganti dengan nilai dari output script
+    ftContract: 'ft.test.near',       // ✅ Ganti dengan nilai dari output script
+  };
+}
+
+export { config };

@@ -1,0 +1,17 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+scenarios:
+  - name: 'Send FT'
+    requests:
+      - post:
+          url: '/send-ft'
+          json:
+            receiverId: 'user1.sandbox'
+            amount: '1000000'
+            memo: 'Benchmark Test'

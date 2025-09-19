@@ -1,5 +1,7 @@
 config:
   target: 'http://localhost:3000'
+  http:
+    timeout: 30000
   phases:
     - duration: 30
       arrivalRate: 10
@@ -7,6 +9,12 @@ config:
       arrivalRate: 50
     - duration: 60
       arrivalRate: 100
+    - duration: 60
+      arrivalRate: 300
+    - duration: 60
+      arrivalRate: 600
+    - duration: 60
+      arrivalRate: 700
   defaults:
     headers:
       Content-Type: 'application/json'

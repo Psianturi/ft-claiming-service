@@ -4,10 +4,10 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"No tests specified\" && exit 0",
     "build": "tsc",
-    "start:testnet": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "start:sandbox": "NEAR_ENV=sandbox ts-node-dev --respawn --transpile-only src/index.ts",
+    "start:testnet": "tsx src/index.ts",
+    "start:sandbox": "NEAR_ENV=sandbox tsx src/index.ts",
     "start": "npm run start:testnet",
     "benchmark": "./node_modules/.bin/ts-node src/benchmark.ts",
     "sandbox": "near-sandbox"
@@ -15,7 +15,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@types/body-parser": "^1.19.6",
     "@types/express": "^5.0.3",
@@ -24,13 +24,15 @@
     "near-sandbox": "^0.2.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@eclipseeer/near-api-ts": "^0.1.1",
     "@near-js/signers": "^2.3.1",
     "body-parser": "^2.2.0",
+    "dotenv": "^16.0.0",
     "express": "^5.1.0",
-    "near-api-js": "^4.0.4",
     "node-fetch": "^2.7.0"
   }
 }

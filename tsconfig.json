@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "module": "commonjs",
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    // "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
@@ -10,6 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }

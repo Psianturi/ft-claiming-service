@@ -147,17 +147,30 @@ npm run start:testnet
     1. Start the server: `NEAR_ENV=testnet npm start`
     2. Baseline at 10 RPS: set `arrivalRate: 10` in `benchmark.yml`, then run `artillery run benchmark.yml`
     3. Increase to 50 RPS, then 100 RPS, repeating the run
+-   Client tuning (recommended for high-load):
+    -   In `benchmark.yml`, add client timeout to reduce client-side ETIMEDOUT:
+        ```
+        config:
+          http:
+            timeout: 30000
+        ```
+-   Optional: High-load 600 RPS test (requires multi access keys + sandbox/testnet headroom):
+    -   Prereq: multiple Function-Call access keys on `masterAccount`, set `MASTER_ACCOUNT_PRIVATE_KEYS` (comma-separated `ed25519:...`), and keep FT contract allowlist methods.
+    -   Example phases:
+        ```
+        config:
+          phases:
+            - duration: 30
+              arrivalRate: 100
+            - duration: 60
+              arrivalRate: 300
+            - duration: 60
+              arrivalRate: 600
+        ```
 -   Report:
     -   Include requests/sec, error rate, latency p95/p99, and notable errors.
     -   Paste the Artillery summary output below this section once runs are completed.
 
-## 🚧 Upcoming Features (Final Bounty Requirements)
-
-This service is being upgraded to fully meet the bounty's high-load requirements:
-
--   **High-Concurrency Support**: Scale signer capacity using `@eclipseeer/near-api-ts` by provisioning multiple access keys and tuning the in-memory queue to sustain 100+ RPS with a low error rate.
--   **Performance Benchmarking**: Run and document Artillery load tests on both sandbox and testnet, including methodology and results.
--   **Operational Hardening (optional)**: Key rotation and improved RPC error handling as upstream features stabilize.
 
 ## License
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

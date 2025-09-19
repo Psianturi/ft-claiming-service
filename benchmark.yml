@@ -12,7 +12,7 @@ config:
       Content-Type: 'application/json'
 scenarios:
   - name: 'Send FT'
-    requests:
+    flow:
       - post:
           url: '/send-ft'
           json:

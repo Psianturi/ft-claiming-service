@@ -57,7 +57,7 @@ Update `src/config.ts` with your testnet account IDs. The `masterAccount` must h
 // src/config.ts
 export const config = {
   networkId: 'testnet',
-  nodeUrl: 'https://test.rpc.fastnear.com',
+  nodeUrl: 'https://rpc.testnet.fastnear.com',
   walletUrl: 'https://wallet.testnet.near.org',
   masterAccount: '<your-master-account>.testnet',
   ftContract: '<your-ft-contract>.testnet',

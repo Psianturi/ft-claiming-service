@@ -39,3 +39,15 @@ Thumbs.db
 .near-credentials/
 # User-specific temporary files
 /${APPDATA}/
+/${APPDATA}/npm
+# Artillery outputs (JSON reports and HTML summaries)
+artillery-*.json
+artillery-*.html
+testnet-*.json
+testnet-*.html
+
+# Editor/backup files
+package.json.save
+
+# Windows APPDATA artifacts (literal folder in repo)
+${APPDATA}\npm/

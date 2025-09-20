@@ -5,6 +5,14 @@ import './polyfills.js';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
+// Prevent server crash on unexpected library exceptions/rejections
+process.on('uncaughtException', (err: any) => {
+  console.error('UncaughtException:', err?.message || err);
+});
+process.on('unhandledRejection', (reason: any) => {
+  console.error('UnhandledRejection:', reason);
+});
+
 // 3. Import other modules
 import express, { Request, Response } from 'express';
 import bodyParser from 'body-parser';
@@ -117,7 +125,23 @@ app.post('/send-ft', async (req: Request, res: Response) => {
     // 2) Susun actions: storage_deposit (jika perlu) + ft_transfer
     const actions: any[] = [];
 
-    if (!isRegistered) {
+    // Env flag to skip view-calls and always send storage_deposit (reduces read RPC pressure)
+    const skipStorageCheck =
+      (process.env.SKIP_STORAGE_CHECK || '').toLowerCase() === 'true';
+
+    if (skipStorageCheck) {
+      const min = String(
+        process.env.STORAGE_MIN_DEPOSIT || '1250000000000000000000'
+      ); // ~0.00125 NEAR
+      actions.push(
+        functionCall({
+          fnName: 'storage_deposit',
+          fnArgsJson: { account_id: receiverId, registration_only: true },
+          gasLimit: teraGas('30'),
+          attachedDeposit: { yoctoNear: min },
+        })
+      );
+    } else if (!isRegistered) {
       // Ambil minimal deposit (with retries)
       const bounds = await withRetry(() =>
         client.callContractReadFunction({
@@ -130,13 +154,12 @@ app.post('/send-ft', async (req: Request, res: Response) => {
       const min = String(
         b.min ?? b?.min?.yocto ?? '1250000000000000000000'
       ); // fallback heuristik ~0.00125 NEAR
-
       actions.push(
         functionCall({
           fnName: 'storage_deposit',
           fnArgsJson: { account_id: receiverId, registration_only: true },
           gasLimit: teraGas('30'),
-          attachedDeposit: { yoctoNear: String(min) },
+          attachedDeposit: { yoctoNear: min },
         })
       );
     }

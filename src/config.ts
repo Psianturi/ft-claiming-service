@@ -1,6 +1,6 @@
 let config = {
   networkId: 'testnet',
-  nodeUrl: 'https://test.rpc.fastnear.com',
+  nodeUrl: 'https://rpc.testnet.fastnear.com',
   masterAccount: 'posm.testnet',
   ftContract: 'posm.testnet',
   helperUrl: 'https://helper.testnet.near.org',

@@ -1,16 +1,16 @@
-import {
-  createClient,
-  createMemoryKeyService,
-  createMemorySigner,
-  testnet,
-  mainnet,
-} from '@eclipseeer/near-api-ts';
 import { config } from './config.js';
 
+// Hybrid approach: different libraries for different environments
+let nearClient: any;
+let nearAccount: any;
+let nearApiJsNear: any;
+let nearApiJsAccount: any;
+let isUsingNearApiJs = false;
 
-let client: any;
-let keyService: any;
-let signer: any;
+// For @eclipseeer/near-api-ts (testnet/mainnet)
+let eclipseeerClient: any;
+let eclipseeerKeyService: any;
+let eclipseeerSigner: any;
 
 // Normalize private key strings copied from env/files:
 // - trim spaces
@@ -34,6 +34,64 @@ const normalizeKey = (pk: string): string => {
 };
 
 export const initNear = async () => {
+  // Determine which library to use based on network
+  if (config.networkId === 'sandbox') {
+    await initNearApiJs();
+  } else if (config.networkId === 'testnet' || config.networkId === 'mainnet') {
+    await initEclipseeerNearApiTs();
+  } else {
+    throw new Error(`Unsupported networkId: ${config.networkId}. Supported: sandbox, testnet, mainnet`);
+  }
+};
+
+// Initialize with near-api-js for sandbox (standard approach)
+const initNearApiJs = async () => {
+  const { connect, keyStores, KeyPair } = await import('near-api-js');
+
+  // Build network configuration
+  const networkConfig = {
+    networkId: config.networkId,
+    nodeUrl: config.nodeUrl || 'http://localhost:3030',
+    walletUrl: config.walletUrl || 'http://localhost:4000/wallet',
+    helperUrl: config.helperUrl || 'https://helper.testnet.near.org',
+    explorerUrl: config.explorerUrl || 'http://localhost:9001/explorer',
+  };
+
+  // Setup keystore with private key from env
+  const keyStore = new keyStores.InMemoryKeyStore();
+
+  // Get private key from env
+  const privateKeyEnv = process.env.MASTER_ACCOUNT_PRIVATE_KEY;
+  if (!privateKeyEnv) {
+    throw new Error('MASTER_ACCOUNT_PRIVATE_KEY environment variable is required for sandbox');
+  }
+  const normalizedKey = normalizeKey(privateKeyEnv);
+  const keyPair = KeyPair.fromString(normalizedKey as any);
+  await keyStore.setKey(config.networkId, config.masterAccount, keyPair);
+
+  // Connect to NEAR
+  nearApiJsNear = await connect({ ...networkConfig, keyStore });
+
+  // Create account
+  nearApiJsAccount = await nearApiJsNear.account(config.masterAccount);
+
+  // Use account directly for transactions
+  nearAccount = nearApiJsAccount;
+
+  isUsingNearApiJs = true;
+  console.log(`✅ NEAR init: near-api-js (sandbox)`);
+};
+
+// Initialize with @eclipseeer/near-api-ts for testnet/mainnet (high performance)
+const initEclipseeerNearApiTs = async () => {
+  const {
+    createClient,
+    createMemoryKeyService,
+    createMemorySigner,
+    testnet,
+    mainnet,
+  } = await import('@eclipseeer/near-api-ts');
+
   // Build network with optional round-robin RPCs via env RPC_URLS (comma-separated),
   // and optional headers (FASTNEAR_API_KEY or RPC_HEADERS as JSON).
   let network: any;
@@ -82,27 +140,21 @@ export const initNear = async () => {
     network = testnet;
   } else if (config.networkId === 'mainnet') {
     network = mainnet;
-  } else if (config.networkId === 'sandbox') {
-    network = {
-      rpcs: {
-        // Local sandbox typically doesn't need headers
-        regular: [{ url: 'http://localhost:3030' }],
-        archival: [{ url: 'http://localhost:3030' }],
-      },
-    };
   } else {
-    throw new Error(
-      `Unsupported networkId: ${config.networkId}. Only testnet, mainnet, and sandbox are supported.`
-    );
+    throw new Error(`Unsupported networkId: ${config.networkId}. Only testnet and mainnet are supported with @eclipseeer/near-api-ts.`);
   }
 
   // Create client
-  client = createClient({ network });
+  eclipseeerClient = createClient({ network });
 
   // Create key service from one or more private keys
   // Env:
   //  - MASTER_ACCOUNT_PRIVATE_KEYS="ed25519:...,ed25519:...,..." (preferred for high-load)
   //  - MASTER_ACCOUNT_PRIVATE_KEY="ed25519:..." (single-key fallback)
+  console.log('🔍 Environment variables check:');
+  console.log('MASTER_ACCOUNT_PRIVATE_KEY exists:', !!process.env.MASTER_ACCOUNT_PRIVATE_KEY);
+  console.log('MASTER_ACCOUNT_PRIVATE_KEYS exists:', !!process.env.MASTER_ACCOUNT_PRIVATE_KEYS);
+
   const keysEnv = process.env.MASTER_ACCOUNT_PRIVATE_KEYS;
   let privateKeys: string[] = [];
   if (keysEnv && keysEnv.trim().length > 0) {
@@ -110,14 +162,17 @@ export const initNear = async () => {
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
+    console.log('Using MASTER_ACCOUNT_PRIVATE_KEYS with', privateKeys.length, 'keys');
   } else {
     const single = process.env.MASTER_ACCOUNT_PRIVATE_KEY;
     if (!single) {
+      console.error('❌ Environment variables dump:', Object.keys(process.env).filter(key => key.includes('MASTER') || key.includes('PRIVATE')));
       throw new Error(
         'MASTER_ACCOUNT_PRIVATE_KEY or MASTER_ACCOUNT_PRIVATE_KEYS environment variable is required'
       );
     }
     privateKeys = [single];
+    console.log('Using MASTER_ACCOUNT_PRIVATE_KEY');
   }
 
   // Sanitize and normalize all keys from env to avoid base58 errors
@@ -126,15 +181,15 @@ export const initNear = async () => {
   // Build key sources
   const keySources = privateKeys.map((privateKey) => ({ privateKey }));
 
-  keyService = await createMemoryKeyService({
+  eclipseeerKeyService = await createMemoryKeyService({
     keySources,
   } as any);
 
   // Derive public keys for key pool, if available
   let signingKeys: string[] = [];
   try {
-    const keyPairs = (keyService as any).getKeyPairs
-      ? (keyService as any).getKeyPairs()
+    const keyPairs = (eclipseeerKeyService as any).getKeyPairs
+      ? (eclipseeerKeyService as any).getKeyPairs()
       : {};
     signingKeys = Object.keys(keyPairs);
   } catch {
@@ -143,22 +198,31 @@ export const initNear = async () => {
   }
 
   // Create signer with optional key pool for load distribution
-  signer = await createMemorySigner({
+  eclipseeerSigner = await createMemorySigner({
     signerAccountId: config.masterAccount,
-    client,
-    keyService,
+    client: eclipseeerClient,
+    keyService: eclipseeerKeyService,
     ...(signingKeys.length > 0 ? { keyPool: { signingKeys } } : {}),
   } as any);
 
+  isUsingNearApiJs = false;
   console.log(
     `✅ NEAR init: @eclipseeer/near-api-ts (keys=${privateKeys.length}, rpcUrls=${rpcUrlsEnv ? rpcUrlsEnv.split(',').length : 1}, headers=${Object.keys(headers).length})`
   );
 };
 
 export const getNear = () => {
-  if (!signer) {
-    throw new Error('NEAR connection not initialized. Call initNear() first.');
+  if (isUsingNearApiJs) {
+    if (!nearAccount) {
+      throw new Error('NEAR connection not initialized. Call initNear() first.');
+    }
+    // Return near-api-js interface (Account)
+    return { account: nearAccount, near: nearApiJsNear };
+  } else {
+    if (!eclipseeerSigner) {
+      throw new Error('NEAR connection not initialized. Call initNear() first.');
+    }
+    // Return @eclipseeer/near-api-ts interface (Signer)
+    return { signer: eclipseeerSigner, client: eclipseeerClient };
   }
-  // Expose signer and client for read/view + tx flows
-  return { signer, client };
 };

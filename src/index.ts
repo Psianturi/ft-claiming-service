@@ -86,7 +86,24 @@ app.post('/send-ft', async (req: Request, res: Response) => {
         .send({ error: 'amount must be a positive number' });
     }
 
-    const { signer, client } = getNear();
+    const nearInterface = getNear();
+
+    // Handle hybrid approach: different interfaces for different libraries
+    let signer: any;
+    let client: any;
+    let account: any;
+
+    if (nearInterface.signer) {
+      // Using @eclipseeer/near-api-ts (testnet/mainnet)
+      signer = nearInterface.signer;
+      client = nearInterface.client;
+    } else if (nearInterface.account) {
+      // Using near-api-js (sandbox)
+      account = nearInterface.account;
+      client = nearInterface.near; // For view calls
+    } else {
+      throw new Error('Invalid NEAR interface returned from getNear()');
+    }
 
     // Helper untuk decode hasil view-call (raw bytes -> JSON)
     const decodeJson = ({ rawResult }: { rawResult: number[] }) => {
@@ -177,24 +194,43 @@ app.post('/send-ft', async (req: Request, res: Response) => {
       })
     );
 
-    // 3) Sign + send with minimal waitUntil (avoid long client waits)
-    const tx = await signer.signTransaction({
-      receiverAccountId: config.ftContract,
-      actions,
-    });
-    const WAIT_UNTIL =
-      (process.env.WAIT_UNTIL as
-        | 'None'
-        | 'Included'
-        | 'ExecutedOptimistic'
-        | 'IncludedFinal'
-        | 'Executed'
-        | 'Final') || 'Included';
+    // 3) Execute transaction based on which library is being used
+    let result: any;
 
-    const result = await client.sendSignedTransaction({
-      signedTransaction: tx,
-      waitUntil: WAIT_UNTIL,
-    });
+    if (account) {
+      // Using near-api-js (sandbox) - use account.functionCall
+      const actionsForNearApiJs = actions.map((action: any) => ({
+        contractId: config.ftContract,
+        methodName: action.params.fnName,
+        args: action.params.fnArgsJson,
+        gas: action.params.gasLimit?.gas || 30000000000000n,
+        deposit: action.params.attachedDeposit?.yoctoNear ? BigInt(action.params.attachedDeposit.yoctoNear) : 1n,
+      }));
+
+      // Execute all actions in sequence
+      for (const action of actionsForNearApiJs) {
+        result = await account.functionCall(action);
+      }
+    } else {
+      // Using @eclipseeer/near-api-ts (testnet/mainnet) - use signer
+      const tx = await signer.signTransaction({
+        receiverAccountId: config.ftContract,
+        actions,
+      });
+      const WAIT_UNTIL =
+        (process.env.WAIT_UNTIL as
+          | 'None'
+          | 'Included'
+          | 'ExecutedOptimistic'
+          | 'IncludedFinal'
+          | 'Executed'
+          | 'Final') || 'Included';
+
+      result = await client.sendSignedTransaction({
+        signedTransaction: tx,
+        waitUntil: WAIT_UNTIL,
+      });
+    }
 
     res.send({ message: 'FT transfer initiated successfully', result });
   } catch (error: any) {

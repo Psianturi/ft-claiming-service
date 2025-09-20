@@ -3,10 +3,10 @@ config:
   http:
     timeout: 30000
   phases:
-    # - duration: 30
-    #   arrivalRate: 10
     - duration: 30
-      arrivalRate: 20
+      arrivalRate: 10
+    - duration: 30
+      arrivalRate: 50
     - duration: 60
       arrivalRate: 100
     - duration: 60
@@ -23,6 +23,6 @@ scenarios:
       - post:
           url: '/send-ft'
           json:
-            receiverId: 'posma-badge.testnet'
+            receiverId: '{{ $env.RECEIVER_ID }}'
             amount: '100000'
             memo: 'Artillery Test'

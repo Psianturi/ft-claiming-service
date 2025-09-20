@@ -1,44 +1,63 @@
 # NEAR Fungible Token API Service
 
-This service provides a simple Express.js API to transfer NEAR Fungible Tokens (FT). It features dynamic configuration to switch between `testnet` and `sandbox` environments and includes robust error handling.
-
-💡 **Note**: For the complete setup, deployment, and end-to-end testing scripts, please see the companion repository: [near-ft-helper](https://github.com/Psianturi/near-ft-helper).
+A high-performance Express.js API service for transferring NEAR Fungible Tokens (FT) with support for both testnet and sandbox environments.
 
 ## Features
 
--   **POST `/send-ft` Endpoint**: Transfers NEP-141 tokens to a specified receiver.
--   **Automatic Storage Registration (NEP-145)**: Checks `storage_balance_of` and prepends `storage_deposit` when needed so the receiver can accept tokens.
--   **Dynamic Configuration**: Switches between `testnet` and `sandbox` using the `NEAR_ENV` environment variable.
--   **High-throughput Signing**: Uses `@eclipseeer/near-api-ts` MemorySigner with automatic nonce management.
--   **ESM + Node 23+**: Works on modern Node with native `crypto`; a small polyfill guard is included.
+- **POST `/send-ft` Endpoint**: Transfer NEP-141 tokens to specified receivers
+- **Automatic Storage Registration**: Handles NEP-145 storage deposits automatically
+- **Dynamic Environment Configuration**: Switch between testnet and sandbox via `NEAR_ENV`
+- **High-Performance Signing**: Uses `@eclipseeer/near-api-ts` with optimized nonce management
+- **ESM + Modern Node.js**: Built for Node.js 23+ with native crypto support
 
 ## Project Structure
 
--   `src/index.ts`: The main Express.js application, defines the `/send-ft` API endpoint.
--   `src/near.ts`: Handles NEAR connection initialization and account loading.
--   `src/config.ts`: Handles dynamic configuration for both `testnet` and `sandbox`.
--   `src/config.sandbox.ts`: Provides baseline configuration for the `sandbox` environment.
+```
+src/
+├── index.ts          # Main Express.js application
+├── near.ts           # NEAR blockchain connection and utilities
+├── config.ts         # Environment configuration
+├── polyfills.ts      # Node.js crypto polyfills
+└── config.sandbox.ts # Sandbox-specific configuration
+```
 
-## Library & Compatibility
-
--   This service uses the community package `@eclipseeer/near-api-ts` (v0.1.x), which is under active development.
--   Automatic nonce handling is implemented and works under normal conditions; RPC error handling is still limited upstream.
--   The codebase is ESM-first. Relative imports use explicit `.js` extensions. Node 23/24 is recommended.
--   References:
-    -   npm: https://www.npmjs.com/package/@eclipseeer/near-api-ts
-    -   DevHub thread: https://nearn.io/devhub/36/
- 
 ## Prerequisites
 
--   Node.js 23+ (24 recommended). A guard polyfill for `crypto` is included but not required on Node ≥ 23.
--   Environment variable `MASTER_ACCOUNT_PRIVATE_KEY` set for `config.masterAccount` (format `ed25519:BASE58...`).
--   A deployed NEP-141 FT contract; set `config.ftContract` to that contract account.
--   For sandbox testing, run a local node (e.g., the companion `near-ft-helper`).
+- Node.js 23+ (24 recommended)
+- Environment variable `MASTER_ACCOUNT_PRIVATE_KEY` (format: `ed25519:BASE58...`)
+- Deployed NEP-141 FT contract
+- For sandbox testing: Local NEAR node running
+
+## FT Contract Deployment
+
+To deploy and test FT contracts, use the companion repository:
+
+**🔗 [near-ft-helper](https://github.com/Psianturi/near-ft-helper)**
+
+This repository provides:
+- Automated FT contract deployment scripts
+- Local sandbox setup and testing
+- End-to-end testing workflows
+- Pre-configured accounts for development
+
+### Quick Setup for Sandbox Testing:
+
+```bash
+# Clone the helper repository
+git clone https://github.com/Psianturi/near-ft-helper.git
+cd near-ft-helper
+
+# Start local NEAR sandbox
+node deploy.js
+```
+
+The sandbox will create test accounts and deploy an FT contract that you can use with this API service.
 
 ## Installation
 
 ```bash
-# Navigate to the service directory
+# Clone the repository
+git clone https://github.com/Psianturi/ft-claiming-service.git
 cd ft-claiming-service
 
 # Install dependencies
@@ -47,153 +66,127 @@ npm install
 
 ## Configuration
 
-The service uses a dynamic configuration loader based on the `NEAR_ENV` environment variable.
+### Environment Variables
 
-### 1. Testnet Configuration (`src/config.ts`)
-
-Update `src/config.ts` with your testnet account IDs. The `masterAccount` must have funds and be the owner of the FTs you wish to send.
-
-```typescript
-// src/config.ts
-export const config = {
-  networkId: 'testnet',
-  nodeUrl: 'https://rpc.testnet.fastnear.com',
-  walletUrl: 'https://wallet.testnet.near.org',
-  masterAccount: '<your-master-account>.testnet',
-  ftContract: '<your-ft-contract>.testnet',
-  // ...
-};
-```
-
-### 2. Sandbox Configuration (`src/config.sandbox.ts`)
-
-These values correspond to the accounts created by the `near-ft-helper/deploy.js` script and should not need to be changed.
-
-```typescript
-// src/config.sandbox.ts
-export const config = {
-  networkId: "sandbox",
-  nodeUrl: "http://localhost:3030",
-  masterAccount: "master.test.near",
-  ftContract: "ft.test.near",
-  // ...
-};
-```
-
-## 🚀 How to Run for Sandbox Testing
-
-Testing is performed in the `ft-claiming-service` folder, but it requires a local NEAR blockchain to be running. The easiest way to set this up is by using the `near-ft-helper` script, which automates the entire process.
-
-### Step 1: Start the Local Blockchain (via `near-ft-helper`)
-
-In a **separate terminal**, navigate to the `near-ft-helper` directory and run the setup script.
+Create a `.env` file in the root directory:
 
 ```bash
-cd /near-ft-helper
-node deploy.js
+# Required: Your NEAR account private key
+MASTER_ACCOUNT_PRIVATE_KEY=ed25519:your_private_key_here
+
+# Optional: Multiple keys for high-load scenarios
+MASTER_ACCOUNT_PRIVATE_KEYS=ed25519:key1,ed25519:key2
+
+# Optional: Custom RPC endpoints
+RPC_URLS=https://rpc.testnet.fastnear.com
 ```
 
-→ Leave this terminal **open and running**. It is now serving a local NEAR blockchain.
+### Network Configuration
 
-### Step 2: Run the API Server
+The service automatically detects the environment via the `NEAR_ENV` variable:
 
-In a **new terminal**, navigate to this `ft-claiming-service` directory and start the server in sandbox mode.
+- `NEAR_ENV=testnet` (default): Uses testnet configuration
+- `NEAR_ENV=sandbox`: Uses sandbox configuration
+
+## Usage
+
+### Running on Testnet
 
 ```bash
-cd /ft-claiming-service
-NEAR_ENV=sandbox npm start
+# Default mode - runs on testnet
+npm start
+
+# Or explicitly
+npm run start:testnet
 ```
 
-→ The API server is now running on `http://localhost:3000` and is connected to your local sandbox.
+### Running on Sandbox
 
-### Step 3: Test with `curl`
+```bash
+# Start local NEAR sandbox first (in separate terminal)
+# Then run the service
+NEAR_ENV=sandbox npm run start:sandbox
+```
 
-You can now send requests to the API from any terminal.
+### API Usage
 
 ```bash
 curl -X POST http://localhost:3000/send-ft \
   -H "Content-Type: application/json" \
   -d '{
-    "receiverId": "user.test.near",
-    "amount": "500000",
-    "memo": "Test from API"
+    "receiverId": "receiver.testnet",
+    "amount": "1000000",
+    "memo": "Token transfer"
   }'
 ```
 
-A successful request will return a JSON object containing the transaction result.
-
-## Running on Testnet (Default)
-
-If you are not using the local sandbox, you can run the service against the public `testnet`.
-
-```bash
-# This is the default mode
-npm start
-# or
-npm run start:testnet
+**Response:**
+```json
+{
+  "message": "FT transfer initiated successfully",
+  "result": {
+    "receiptsOutcome": [...],
+    "status": {...},
+    "transaction": {...}
+  }
+}
 ```
-
-## Security & Best Practices
-
--   **Authentication**: The current API is unauthenticated. For any real-world application, protect this endpoint with an API key, JWT, or other authentication mechanism.
--   **RPC Rate Limits**: The public testnet RPC (rpc.testnet.near.org) is deprecated and has strict rate limits. Always use https://test.rpc.fastnear.com for testing and development. The sandbox environment does not have rate limits.
--   **Error Handling**: The service includes basic checks but can be extended with more specific error handling and logging.
-
-
-## High-load (Sandbox) Setup
-
-To push 100+ RPS without public RPC limits, run on Sandbox and enable high-load settings.
-
-Environment variables:
-- NEAR_ENV=sandbox
-- RPC_URLS=http://localhost:3030
-- MASTER_ACCOUNT_PRIVATE_KEYS=ed25519:...,ed25519:...   (comma-separated Function-Call keys)
-- CONCURRENCY_LIMIT=200                                 (tune: 100–400)
-- WAIT_UNTIL=Included                                   (lower request latency)
-
-Provision multiple Function-Call access keys on Sandbox (examples):
-- Allowlist FT methods for the contract:
-  - storage_deposit, storage_balance_of, storage_balance_bounds, ft_transfer
-- Example near-cli commands (adjust paths/accounts):
-  near add-key master.test.near <PUBLIC_KEY_1> --contract-id ft.test.near --method-names "ft_transfer,storage_deposit,storage_balance_of,storage_balance_bounds" --allowance "1 NEAR"
-  near add-key master.test.near <PUBLIC_KEY_2> --contract-id ft.test.near --method-names "ft_transfer,storage_deposit,storage_balance_of,storage_balance_bounds" --allowance "1 NEAR"
-  # extract matching private keys and set MASTER_ACCOUNT_PRIVATE_KEYS
-
-Run server:
-- NEAR_ENV=sandbox npm start
-- The service uses round-robin RPCs via RPC_URLS and a multi-key pool signer.
 
 ## Benchmarking
 
--   Tool: Artillery. Scenario file is `benchmark.yml` targeting `http://localhost:3000/send-ft`.
--   Steps:
-    1. Start the server: `NEAR_ENV=testnet npm start`
-    2. Baseline at 10 RPS: set `arrivalRate: 10` in `benchmark.yml`, then run `artillery run benchmark.yml`
-    3. Increase to 50 RPS, then 100 RPS, repeating the run
--   Client tuning (recommended for high-load):
-    -   In `benchmark.yml`, add client timeout to reduce client-side ETIMEDOUT:
-        ```
-        config:
-          http:
-            timeout: 30000
-        ```
--   Optional: High-load 600 RPS test (requires multi access keys + sandbox/testnet headroom):
-    -   Prereq: multiple Function-Call access keys on `masterAccount`, set `MASTER_ACCOUNT_PRIVATE_KEYS` (comma-separated `ed25519:...`), and keep FT contract allowlist methods.
-    -   Example phases:
-        ```
-        config:
-          phases:
-            - duration: 30
-              arrivalRate: 100
-            - duration: 60
-              arrivalRate: 300
-            - duration: 60
-              arrivalRate: 600
-        ```
--   Report:
-    -   Include requests/sec, error rate, latency p95/p99, and notable errors.
-    -   Paste the Artillery summary output below this section once runs are completed.
+The service includes Artillery configuration for performance testing:
 
+```bash
+# Install Artillery globally
+npm install -g artillery
+
+# Run benchmark
+RECEIVER_ID=your_receiver_id artillery run benchmark.yml
+```
+
+### Benchmark Configuration
+
+The `benchmark.yml` file includes multiple phases for testing different load levels:
+
+- Phase 1: 10 RPS for 30 seconds
+- Phase 2: 50 RPS for 30 seconds
+- Phase 3: 100 RPS for 60 seconds
+- Phase 4: 300 RPS for 60 seconds
+- Phase 5: 600 RPS for 60 seconds
+
+## Development
+
+### Building
+
+```bash
+npm run build
+```
+
+### Testing
+
+```bash
+# Run with different environments
+NEAR_ENV=testnet npm start
+NEAR_ENV=sandbox npm start
+```
+
+## Security Considerations
+
+- **Authentication**: Currently unauthenticated - add API keys or JWT for production
+- **Private Keys**: Store securely in environment variables, never in code
+- **Rate Limiting**: Implement request rate limiting for production use
+- **RPC Providers**: Use reliable RPC endpoints (FastNear recommended for testnet)
+
+## Error Handling
+
+The service includes comprehensive error handling for:
+
+- Invalid receiver accounts
+- Insufficient storage deposits
+- RPC connection issues
+- Transaction failures
+- Rate limiting
 
 ## License
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+MIT License - see LICENSE file for details

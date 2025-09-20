@@ -47,7 +47,15 @@ testnet-*.json
 testnet-*.html
 
 # Editor/backup files
-package.json.save
+*.save
+*.bak
+
+# Benchmark results and temporary files
+benchmark-simple.js
+*.log
 
 # Windows APPDATA artifacts (literal folder in repo)
 ${APPDATA}\npm/
+
+# Large directories that shouldn't be committed
+nearcore/

@@ -17,6 +17,43 @@ console.log('Config:', config);
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Simple bounded concurrency limiter
+const CONCURRENCY_LIMIT = parseInt(process.env.CONCURRENCY_LIMIT || '100', 10);
+let active = 0;
+const waitQueue: Array<() => void> = [];
+const acquire = async () => {
+  if (active < CONCURRENCY_LIMIT) {
+    active += 1;
+    return;
+  }
+  await new Promise<void>((resolve) => waitQueue.push(resolve));
+  active += 1;
+};
+const release = () => {
+  active = Math.max(0, active - 1);
+  const next = waitQueue.shift();
+  if (next) next();
+};
+
+// Retry helper with exponential backoff for view RPC calls
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const withRetry = async <T>(fn: () => Promise<T>, attempts = 3) => {
+  let delay = 200;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e: any) {
+      const code = e?.cause?.code ?? e?.code;
+      const retriable =
+        code === -429 || code === 'ETIMEDOUT' || code === 'ECONNRESET';
+      if (!retriable || i === attempts - 1) throw e;
+      await sleep(delay);
+      delay *= 2;
+    }
+  }
+  throw new Error('unreachable');
+};
+
 app.use(bodyParser.json());
 
 app.get('/', (req: Request, res: Response) => {
@@ -24,16 +61,21 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 app.post('/send-ft', async (req: Request, res: Response) => {
+  await acquire();
   try {
     const { receiverId, amount, memo } = req.body;
 
     if (!receiverId || amount == null) {
-      return res.status(400).send({ error: 'receiverId and amount are required' });
+      return res
+        .status(400)
+        .send({ error: 'receiverId and amount are required' });
     }
 
     const amountStr = String(amount);
     if (isNaN(Number(amountStr)) || Number(amountStr) <= 0) {
-      return res.status(400).send({ error: 'amount must be a positive number' });
+      return res
+        .status(400)
+        .send({ error: 'amount must be a positive number' });
     }
 
     const { signer, client } = getNear();
@@ -48,30 +90,46 @@ app.post('/send-ft', async (req: Request, res: Response) => {
       }
     };
 
-    // 1) Cek apakah receiver sudah terdaftar di FT (NEP-145)
-    const storage = await client.callContractReadFunction({
-      contractAccountId: config.ftContract,
-      fnName: 'storage_balance_of',
-      fnArgsJson: { account_id: receiverId },
-      response: { resultTransformer: decodeJson },
-    });
+    // 1) Cek apakah receiver sudah terdaftar di FT (NEP-145), with retries
+    const storage = await withRetry(() =>
+      client.callContractReadFunction({
+        contractAccountId: config.ftContract,
+        fnName: 'storage_balance_of',
+        fnArgsJson: { account_id: receiverId },
+        response: { resultTransformer: decodeJson },
+      })
+    );
 
-    const registeredAmountStr =
-      (storage && (storage.total ?? storage.available)) || '0';
+    const storageJson: any = storage ?? {};
+    const registeredAmountStr = String(
+      storageJson.total ?? storageJson.available ?? '0'
+    );
     const isRegistered =
-      storage != null && (() => { try { return BigInt(String(registeredAmountStr)) > 0n; } catch { return false; } })();
+      storageJson != null &&
+      (() => {
+        try {
+          return BigInt(registeredAmountStr) > 0n;
+        } catch {
+          return false;
+        }
+      })();
 
     // 2) Susun actions: storage_deposit (jika perlu) + ft_transfer
     const actions: any[] = [];
 
     if (!isRegistered) {
-      // Ambil minimal deposit
-      const bounds = await client.callContractReadFunction({
-        contractAccountId: config.ftContract,
-        fnName: 'storage_balance_bounds',
-        response: { resultTransformer: decodeJson },
-      });
-      const min = (bounds && (bounds.min ?? bounds?.min?.yocto)) || '1250000000000000000000'; // fallback heuristik ~0.00125 NEAR
+      // Ambil minimal deposit (with retries)
+      const bounds = await withRetry(() =>
+        client.callContractReadFunction({
+          contractAccountId: config.ftContract,
+          fnName: 'storage_balance_bounds',
+          response: { resultTransformer: decodeJson },
+        })
+      );
+      const b: any = bounds ?? {};
+      const min = String(
+        b.min ?? b?.min?.yocto ?? '1250000000000000000000'
+      ); // fallback heuristik ~0.00125 NEAR
 
       actions.push(
         functionCall({
@@ -91,21 +149,38 @@ app.post('/send-ft', async (req: Request, res: Response) => {
           amount: amountStr, // amount dalam string, sesuai standar FT
           memo: memo || '',
         },
-        gasLimit: teraGas('30'),           // 30 Tgas
-        attachedDeposit: { yoctoNear: '1' } // 1 yoctoNEAR
+        gasLimit: teraGas('30'), // 30 Tgas
+        attachedDeposit: { yoctoNear: '1' }, // 1 yoctoNEAR
       })
     );
 
-    // 3) Eksekusi transaksi gabungan
-    const result = await signer.executeTransaction({
+    // 3) Sign + send with minimal waitUntil (avoid long client waits)
+    const tx = await signer.signTransaction({
       receiverAccountId: config.ftContract,
       actions,
+    });
+    const WAIT_UNTIL =
+      (process.env.WAIT_UNTIL as
+        | 'None'
+        | 'Included'
+        | 'ExecutedOptimistic'
+        | 'IncludedFinal'
+        | 'Executed'
+        | 'Final') || 'Included';
+
+    const result = await client.sendSignedTransaction({
+      signedTransaction: tx,
+      waitUntil: WAIT_UNTIL,
     });
 
     res.send({ message: 'FT transfer initiated successfully', result });
   } catch (error: any) {
     console.error('FT transfer failed:', error);
-    res.status(500).send({ error: 'Failed to initiate FT transfer', details: error.message });
+    res
+      .status(500)
+      .send({ error: 'Failed to initiate FT transfer', details: error.message });
+  } finally {
+    release();
   }
 });
 

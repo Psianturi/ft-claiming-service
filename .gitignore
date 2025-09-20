@@ -35,7 +35,7 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Near credentials (jangan sampai bocor!)
+# Near credentials 
 .near-credentials/
 # User-specific temporary files
 /${APPDATA}/

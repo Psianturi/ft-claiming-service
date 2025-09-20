@@ -140,6 +140,29 @@ npm run start:testnet
 -   **Error Handling**: The service includes basic checks but can be extended with more specific error handling and logging.
 
 
+## High-load (Sandbox) Setup
+
+To push 100+ RPS without public RPC limits, run on Sandbox and enable high-load settings.
+
+Environment variables:
+- NEAR_ENV=sandbox
+- RPC_URLS=http://localhost:3030
+- MASTER_ACCOUNT_PRIVATE_KEYS=ed25519:...,ed25519:...   (comma-separated Function-Call keys)
+- CONCURRENCY_LIMIT=200                                 (tune: 100–400)
+- WAIT_UNTIL=Included                                   (lower request latency)
+
+Provision multiple Function-Call access keys on Sandbox (examples):
+- Allowlist FT methods for the contract:
+  - storage_deposit, storage_balance_of, storage_balance_bounds, ft_transfer
+- Example near-cli commands (adjust paths/accounts):
+  near add-key master.test.near <PUBLIC_KEY_1> --contract-id ft.test.near --method-names "ft_transfer,storage_deposit,storage_balance_of,storage_balance_bounds" --allowance "1 NEAR"
+  near add-key master.test.near <PUBLIC_KEY_2> --contract-id ft.test.near --method-names "ft_transfer,storage_deposit,storage_balance_of,storage_balance_bounds" --allowance "1 NEAR"
+  # extract matching private keys and set MASTER_ACCOUNT_PRIVATE_KEYS
+
+Run server:
+- NEAR_ENV=sandbox npm start
+- The service uses round-robin RPCs via RPC_URLS and a multi-key pool signer.
+
 ## Benchmarking
 
 -   Tool: Artillery. Scenario file is `benchmark.yml` targeting `http://localhost:3000/send-ft`.
